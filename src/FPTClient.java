@@ -2,8 +2,10 @@
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 import javax.swing.JOptionPane;
@@ -50,26 +52,31 @@ import javax.swing.SwingConstants;
  */
 public class FPTClient extends javax.swing.JFrame implements ActionListener{
 
-    private static String FTP_SERVER_ADDRESS=null;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private static String FTP_SERVER_ADDRESS=null;
     private static int FTP_PORT_NUMBER =0;
     private static final int FTP_TIMEOUT=60000;
     private static final int BUFFER_SIZE=1024*1024*1;
     private static String FTP_USERNAME=null;
     private static String FTP_PASSWORD=null;
     private static final String SLASH="/";
-    private FTPClient ftpClient;
+    private static FTPClient ftpClient;
     private DefaultTableModel modelRemote;
     private String status="";
     private  static FPTClient fptClient;
     //tree
     private DefaultMutableTreeNode root, root_1;
     private DefaultTreeModel treeModel,treeModel_1;
-    private static File fileRoot, fileRoot_1;
-    private JTree tree, tree_1;
+    private static File  fileRoot_1;
+    private JTree  tree_1;
     private static String defaultLocalPath="F:\\";
     private static String downloadFolder = "E:\\IT\\Ki - 8\\FTPClient";
     
     public static void main(String args[]) {
+    	fptClient=new FPTClient();
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new FPTClient().setVisible(true);
@@ -91,7 +98,7 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
             public void valueChanged(ListSelectionEvent event) {
                 System.out.println(jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString());
                 status+="\n "+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString();
-                txtpaneStatus.setText(status);
+                setPaneStatus(status);
             }
         });
     }
@@ -105,7 +112,6 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         jLabel1 = new javax.swing.JLabel();
         jTextFieldHost = new javax.swing.JTextField();
         jTextFieldUsername = new javax.swing.JTextField();
-        jTextFieldStatus = new javax.swing.JTextField();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         jTextFieldPort = new javax.swing.JTextField();
@@ -115,11 +121,15 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         jLabel6 = new javax.swing.JLabel();
         jScrollPaneRemote = new javax.swing.JScrollPane();
         jTableRemote = new javax.swing.JTable();
+        txtpaneStatus = new JTextPane();
+        txtpaneStatus.setEditable(false);
+        txtpaneStatus.setPreferredSize(new Dimension(950, 20));
+        
         jScrollPaneLocal = new javax.swing.JScrollPane();
         scrollPaneStatus = new JScrollPane();
-        txtpaneStatus = new JTextPane();
-        txtpaneStatus.setPreferredSize(new Dimension(950, 20));
-
+        scrollPaneStatus.setPreferredSize(new Dimension(950, 20));
+        
+        
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Ftp Client");
         setPreferredSize(new Dimension(1000, 550));
@@ -223,22 +233,27 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         
                 jLabel5.setText("Local site");
         
-        textFieldPath = new JTextField(defaultLocalPath);
-        textFieldPath.setEditable(false);
-        textFieldPath.setColumns(10);
+        textFieldPathLocal = new JTextField(defaultLocalPath);
+        textFieldPathLocal.setEditable(false);
+        textFieldPathLocal.setColumns(10);
+        
+        textFieldRemote = new JTextField("F:\\");
+        textFieldRemote.setEditable(false);
+        textFieldRemote.setColumns(10);
+        
+        JButton button = new JButton("Choose");
+        button.setActionCommand("btnBrowse");
         
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         layout.setHorizontalGroup(
         	layout.createParallelGroup(Alignment.LEADING)
         		.addGroup(layout.createSequentialGroup()
-        			.addContainerGap(676, Short.MAX_VALUE)
-        			.addComponent(jLabel6)
-        			.addGap(251))
-        		.addGroup(layout.createSequentialGroup()
         			.addGap(49)
         			.addComponent(jLabel5)
-        			.addContainerGap(891, Short.MAX_VALUE))
+        			.addPreferredGap(ComponentPlacement.RELATED, 568, Short.MAX_VALUE)
+        			.addComponent(jLabel6)
+        			.addGap(266))
         		.addGroup(layout.createSequentialGroup()
         			.addGap(34)
         			.addGroup(layout.createParallelGroup(Alignment.TRAILING)
@@ -248,22 +263,28 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         				.addGroup(layout.createSequentialGroup()
         					.addGroup(layout.createParallelGroup(Alignment.LEADING)
         						.addComponent(scrollPaneStatus, GroupLayout.DEFAULT_SIZE, 895, Short.MAX_VALUE)
-        						.addGroup(layout.createSequentialGroup()
-        							.addComponent(jScrollPaneLocal, GroupLayout.PREFERRED_SIZE, 446, GroupLayout.PREFERRED_SIZE)
+        						.addGroup(Alignment.TRAILING, layout.createSequentialGroup()
+        							.addGroup(layout.createParallelGroup(Alignment.LEADING)
+        								.addComponent(jScrollPaneLocal, GroupLayout.PREFERRED_SIZE, 446, GroupLayout.PREFERRED_SIZE)
+        								.addGroup(layout.createParallelGroup(Alignment.LEADING, false)
+        									.addGroup(layout.createSequentialGroup()
+        										.addGap(55)
+        										.addComponent(btnDownload)
+        										.addGap(44)
+        										.addComponent(btnUpload, GroupLayout.PREFERRED_SIZE, 79, GroupLayout.PREFERRED_SIZE)
+        										.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        										.addComponent(btnDelete, GroupLayout.PREFERRED_SIZE, 79, GroupLayout.PREFERRED_SIZE))
+        									.addGroup(layout.createSequentialGroup()
+        										.addComponent(textFieldPathLocal, GroupLayout.PREFERRED_SIZE, 302, GroupLayout.PREFERRED_SIZE)
+        										.addGap(18)
+        										.addComponent(btnChoose, GroupLayout.PREFERRED_SIZE, 79, GroupLayout.PREFERRED_SIZE))))
         							.addPreferredGap(ComponentPlacement.RELATED, 24, Short.MAX_VALUE)
-        							.addComponent(jScrollPaneRemote, GroupLayout.PREFERRED_SIZE, 425, GroupLayout.PREFERRED_SIZE))
-        						.addGroup(layout.createParallelGroup(Alignment.TRAILING, false)
-        							.addGroup(Alignment.LEADING, layout.createSequentialGroup()
-        								.addGap(55)
-        								.addComponent(btnDownload)
-        								.addGap(44)
-        								.addComponent(btnUpload, GroupLayout.PREFERRED_SIZE, 79, GroupLayout.PREFERRED_SIZE)
-        								.addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        								.addComponent(btnDelete, GroupLayout.PREFERRED_SIZE, 79, GroupLayout.PREFERRED_SIZE))
-        							.addGroup(Alignment.LEADING, layout.createSequentialGroup()
-        								.addComponent(textFieldPath, GroupLayout.PREFERRED_SIZE, 302, GroupLayout.PREFERRED_SIZE)
-        								.addGap(18)
-        								.addComponent(btnChoose, GroupLayout.PREFERRED_SIZE, 79, GroupLayout.PREFERRED_SIZE))))
+        							.addGroup(layout.createParallelGroup(Alignment.LEADING)
+        								.addGroup(layout.createSequentialGroup()
+        									.addComponent(textFieldRemote, GroupLayout.PREFERRED_SIZE, 302, GroupLayout.PREFERRED_SIZE)
+        									.addGap(18)
+        									.addComponent(button, GroupLayout.PREFERRED_SIZE, 79, GroupLayout.PREFERRED_SIZE))
+        								.addComponent(jScrollPaneRemote, GroupLayout.PREFERRED_SIZE, 425, GroupLayout.PREFERRED_SIZE))))
         					.addGap(55))))
         );
         layout.setVerticalGroup(
@@ -274,19 +295,24 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         			.addPreferredGap(ComponentPlacement.UNRELATED)
         			.addComponent(scrollPaneStatus, GroupLayout.PREFERRED_SIZE, 81, GroupLayout.PREFERRED_SIZE)
         			.addPreferredGap(ComponentPlacement.UNRELATED)
-        			.addGroup(layout.createParallelGroup(Alignment.BASELINE)
-        				.addComponent(btnDownload)
-        				.addComponent(btnUpload)
-        				.addComponent(btnDelete))
-        			.addGap(18)
-        			.addComponent(jLabel6)
-        			.addGap(9)
-        			.addComponent(jLabel5)
+        			.addGroup(layout.createParallelGroup(Alignment.TRAILING)
+        				.addGroup(layout.createSequentialGroup()
+        					.addGroup(layout.createParallelGroup(Alignment.BASELINE)
+        						.addComponent(btnDownload)
+        						.addComponent(btnUpload)
+        						.addComponent(btnDelete))
+        					.addGap(41)
+        					.addComponent(jLabel5))
+        				.addComponent(jLabel6))
         			.addGap(10)
-        			.addGroup(layout.createParallelGroup(Alignment.BASELINE)
-        				.addComponent(textFieldPath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-        				.addComponent(btnChoose))
-        			.addPreferredGap(ComponentPlacement.RELATED, 19, Short.MAX_VALUE)
+        			.addGroup(layout.createParallelGroup(Alignment.LEADING)
+        				.addGroup(layout.createParallelGroup(Alignment.BASELINE)
+        					.addComponent(textFieldPathLocal, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+        					.addComponent(btnChoose))
+        				.addGroup(layout.createSequentialGroup()
+        					.addGap(1)
+        					.addComponent(textFieldRemote, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+        				.addComponent(button))
         			.addGroup(layout.createParallelGroup(Alignment.BASELINE)
         				.addComponent(jScrollPaneRemote, GroupLayout.PREFERRED_SIZE, 191, GroupLayout.PREFERRED_SIZE)
         				.addComponent(jScrollPaneLocal, GroupLayout.PREFERRED_SIZE, 191, GroupLayout.PREFERRED_SIZE))
@@ -350,7 +376,7 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
                   .getPath().getLastPathComponent();
               System.out.println("You selected " + node);
               status+="\n Status: You selected " + node;
-              txtpaneStatus.setText(status);
+              setPaneStatus(status);
               
             }
           });
@@ -367,12 +393,12 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 			public void actionPerformed(ActionEvent e) {
 				System.out.println("click download");
 				status+="\n Status: Click download";
-				txtpaneStatus.setText(status);
+				setPaneStatus(status);
 //				FPTClient fptClient=new FPTClient();
 				String downloadPath= SLASH+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString();
 				System.out.println("downloadpath: "+downloadPath);
-				System.out.println("dowload: dowloadfolder: "+downloadFolder);
-				fptClient.downloadFTPFile(downloadPath, downloadFolder+SLASH+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString());
+				System.out.println("dowload: dowloadfolder: "+downloadFolder+SLASH+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString());
+				downloadFTPFile(downloadPath, downloadFolder+SLASH+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString());
 			}
 		});
         btnChoose.addActionListener(new ActionListener() {
@@ -399,9 +425,9 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 			         +  chooser.getSelectedFile());
 			      fileRoot_1 = chooser.getSelectedFile();
 				    System.out.println(fileRoot_1.getPath());
-				    textFieldPath.setText(fileRoot_1.getPath());
+				    textFieldPathLocal.setText(fileRoot_1.getPath());
 				    status+="\n Status: You choose direction:"+fileRoot_1.getPath();
-				    txtpaneStatus.setText(status);
+				    setPaneStatus(status);
 				    addTree(fileRoot_1);
 				   // contentPane.updateUI();
 				    
@@ -411,6 +437,26 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 			      System.out.println("No Selection ");
 			      status+="\n Status: No selection direction";
 			      }
+				
+			}
+		});
+        btnUpload.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String localFileFullName="";
+				String fileName=tree_1.getSelectionPath().;
+				int index=0;
+				while() {
+					fileName+=tree_1.getSelectionPath().getPathComponent(index)
+				}
+				System.out.println("Upload: path: "+fileName);
+				String hostDir="/";
+				try {
+//					uploadFile(localFileFullName, fileName, hostDir);
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
 				
 			}
 		});
@@ -460,7 +506,7 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
                   .getPath().getLastPathComponent();
               System.out.println("You selected " + node);
               status+="\n Status: You selected "+node;
-              txtpaneStatus.setText(status);
+              setPaneStatus(status);
             }
           });
        
@@ -564,14 +610,15 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
                         System.out.println(FTP_USERNAME+" Login thanh cong");
                         setTitle(FTP_USERNAME+"@"+FTP_SERVER_ADDRESS);
                         status+="\n Status: Đăng nhập thành công";
-                        txtpaneStatus.setText(status);
+                        setPaneStatus(status);
                         getListFile();
+//                        downloadFTPFile("/Danh sach cac lop truyen thong.xlsx", "E:\\IT\\Ki - 8\\FTPClient/Danh sach cac lop truyen thong.xlsx");
                         
                 }else{
                         System.out.println("User or password is incorrect!");
                         JOptionPane.showMessageDialog(this, "Thông tin đăng nhập không xác thực");
                         status+="\n Status: Thông tin đăng nhập không xác thực";
-                        txtpaneStatus.setText(status);
+                        setPaneStatus(status);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -613,14 +660,14 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
     private javax.swing.JTextField jTextFieldHost;
     private javax.swing.JTextField jTextFieldPort;
     private javax.swing.JTextField jTextFieldUsername;
-    private javax.swing.JTextField jTextFieldStatus;
     private JButton btnDownload;
     private JButton btnUpload;
     private JButton btnDelete;
     private JButton btnChoose;
     private JScrollPane scrollPaneStatus;
     private JTextPane txtpaneStatus;
-    private JTextField textFieldPath;
+    private JTextField textFieldPathLocal;
+    private JTextField textFieldRemote;
     
     // End of variables declaration                   
 
@@ -662,11 +709,8 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
     private void downloadFTPFile(String ftpFilePath, String downloadFilePath) {
         System.out.println("File " + ftpFilePath + " is downloading...");
         System.out.println("download: downloadfilepath: "+downloadFilePath);
-        status+="\n"+"File " + ftpFilePath + " is downloading...";
-        System.out.println("Download: test ftpClient charset: "+ftpClient.getCharsetName());
-        System.out.println("mv");
-        txtpaneStatus.setText(status);
-        System.out.println("mv2");
+        status+="\n"+" Status: File " + ftpFilePath + " is downloading...";
+        setPaneStatus(status);
         OutputStream outputStream=null;
         boolean success=false;
         try {
@@ -690,13 +734,24 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
                     + " has been downloaded successfully.");
             status+="\n"+" Status:File " + ftpFilePath 
                     + " has been downloaded successfully.";
-            txtpaneStatus.setText(status);
+            setPaneStatus(status);
+            
         }
     }
+    public void uploadFile(String localFileFullName, String fileName, String hostDir)
+			throws Exception {
+		try(InputStream input = new FileInputStream(new File(localFileFullName))){
+		ftpClient.storeFile(hostDir + fileName, input);
+		}
+	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		// TODO Auto-generated method stub
 		
+	}
+	synchronized void setPaneStatus(String str) {
+		txtpaneStatus.setText(str);
+		scrollPaneStatus.setViewportView(txtpaneStatus);
 	}
 }
