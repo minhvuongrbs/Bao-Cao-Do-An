@@ -45,6 +45,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JTextPane;
 import java.awt.Dimension;
 import javax.swing.SwingConstants;
+import javax.swing.JTable;
 
 /**
  *
@@ -74,9 +75,10 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
     private JTree  tree_1;
     private static String defaultLocalPath="F:\\";
     private static String downloadFolder = "E:\\IT\\Ki - 8\\FTPClient";
+    private static String localSelectedFile="F:\\";
     
     public static void main(String args[]) {
-    	fptClient=new FPTClient();
+//    	fptClient=new FPTClient();
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 new FPTClient().setVisible(true);
@@ -96,11 +98,14 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         modelRemote.setColumnIdentifiers(column);
         jTableRemote.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
             public void valueChanged(ListSelectionEvent event) {
-                System.out.println(jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString());
-                status+="\n "+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString();
-                setPaneStatus(status);
+            	if(!event.getValueIsAdjusting()) {
+                    System.out.println(jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString());
+                    status+="\n Status: You selected "+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString();
+                    setPaneStatus(status);
+            	}
             }
         });
+        jTableRemote.isEditing();
     }
 
     
@@ -120,7 +125,12 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         jPasswordField = new javax.swing.JPasswordField();
         jLabel6 = new javax.swing.JLabel();
         jScrollPaneRemote = new javax.swing.JScrollPane();
-        jTableRemote = new javax.swing.JTable();
+        jTableRemote = new javax.swing.JTable() {
+        	@Override
+        	public boolean isCellEditable(int row, int column) {
+        		return false;
+        	}
+        };
         txtpaneStatus = new JTextPane();
         txtpaneStatus.setEditable(false);
         txtpaneStatus.setPreferredSize(new Dimension(950, 20));
@@ -207,14 +217,14 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 
         jLabel6.setText("Remote site");
 
-        jTableRemote.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-
-            },
-            new String [] {
-
-            }
-        ));
+//        jTableRemote.setModel(new javax.swing.table.DefaultTableModel(
+//            new Object [][] {
+//
+//            },
+//            new String [] {
+//
+//            }
+//        ));
 //        jScrollPaneRemote.setViewportView(jTableRemote);
         
         btnDownload = new JButton("Download");
@@ -423,6 +433,8 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 			         +  chooser.getCurrentDirectory());
 			      System.out.println("getSelectedFile() : " 
 			         +  chooser.getSelectedFile());
+			      localSelectedFile=chooser.getSelectedFile().toString();
+			      System.out.println("upload: choose local selectedfile"+localSelectedFile);
 			      fileRoot_1 = chooser.getSelectedFile();
 				    System.out.println(fileRoot_1.getPath());
 				    textFieldPathLocal.setText(fileRoot_1.getPath());
@@ -444,16 +456,24 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				String localFileFullName="";
-				String fileName=tree_1.getSelectionPath().;
-				int index=0;
-				while() {
-					fileName+=tree_1.getSelectionPath().getPathComponent(index)
+				String localFileFullName=localSelectedFile+tree_1.getSelectionPath().getPathComponent(1).toString();
+				System.out.println("upload: localFileFullName:"+localFileFullName);
+				int index=2;
+				while(index<tree_1.getSelectionPath().getPathCount()) {
+					localFileFullName+="\\"+tree_1.getSelectionPath().getPathComponent(index).toString();
+					index++;
 				}
-				System.out.println("Upload: path: "+fileName);
+				System.out.println("upload: localFileFullName: "+localFileFullName);
+				int count=tree_1.getSelectionPath().getPathCount();
+				String fileName=tree_1.getSelectionPath().getPathComponent(count-1).toString();
+				System.out.println("Upload: fileName: "+tree_1.getSelectionPath().getPathComponent(count-1));
 				String hostDir="/";
+				System.out.println("upload: hostDir "+hostDir);
 				try {
-//					uploadFile(localFileFullName, fileName, hostDir);
+					System.out.println("upload: on up");
+					status+="\n Status: Starting upload of "+localFileFullName;
+					setPaneStatus(status);
+					uploadFile(localFileFullName, fileName, hostDir);
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
@@ -586,10 +606,16 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
      */
 
     private void connectFTPServer() {
-        FTP_SERVER_ADDRESS=jTextFieldHost.getText();
-        FTP_USERNAME=jTextFieldUsername.getText();
-        FTP_PASSWORD=jPasswordField.getText();
-        FTP_PORT_NUMBER=Integer.parseInt(jTextFieldPort.getText());
+//        FTP_SERVER_ADDRESS=jTextFieldHost.getText();
+//        FTP_USERNAME=jTextFieldUsername.getText();
+//        FTP_PASSWORD=jPasswordField.getText();
+//        FTP_PORT_NUMBER=Integer.parseInt(jTextFieldPort.getText());
+    	
+    	FTP_SERVER_ADDRESS="localhost";
+        FTP_USERNAME="vuong";
+        FTP_PASSWORD="123456";
+        FTP_PORT_NUMBER=21;
+    	
         ftpClient=new FTPClient();
         try {
             System.out.println("connecting to ftp server.....");
@@ -738,10 +764,16 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
             
         }
     }
-    public void uploadFile(String localFileFullName, String fileName, String hostDir)
+    synchronized void uploadFile(String localFileFullName, String fileName, String hostDir)
 			throws Exception {
+//    	localFileFullName="F:\\image/mv.txt";
+    	System.out.println("upload: localfilefullname: "+localFileFullName);
 		try(InputStream input = new FileInputStream(new File(localFileFullName))){
 		ftpClient.storeFile(hostDir + fileName, input);
+//			ftpClient.storeFile("/testmv.txt" , input);
+			System.out.println("upload: success");
+			status+="\n Status: File transfer successful";
+			setPaneStatus(status);
 		}
 	}
 
