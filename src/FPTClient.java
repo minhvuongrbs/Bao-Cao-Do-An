@@ -33,7 +33,6 @@ import javax.swing.GroupLayout;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
 import javax.swing.JTextArea;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -45,7 +44,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JTextPane;
 import java.awt.Dimension;
 import javax.swing.SwingConstants;
-import javax.swing.JTable;
+
 
 /**
  *
@@ -60,7 +59,7 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 	private static String FTP_SERVER_ADDRESS=null;
     private static int FTP_PORT_NUMBER =0;
     private static final int FTP_TIMEOUT=60000;
-    private static final int BUFFER_SIZE=1024*1024*1;
+    private static final int BUFFER_SIZE=1024*1024*100;
     private static String FTP_USERNAME=null;
     private static String FTP_PASSWORD=null;
     private static final String SLASH="/";
@@ -84,10 +83,6 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
                 new FPTClient().setVisible(true);
             }
         });
-        
-        
-        
-        
     }
     
     public FPTClient() {
@@ -99,9 +94,18 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         jTableRemote.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
             public void valueChanged(ListSelectionEvent event) {
             	if(!event.getValueIsAdjusting()) {
-                    System.out.println(jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString());
-                    status+="\n Status: You selected "+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString();
-                    setPaneStatus(status);
+                    try {
+                    	System.out.println(jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString());
+                        status+="\n Status: You selected "+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString();
+                        setPaneStatus(status);
+					} catch (Exception e) {
+						try {
+							modelRemote.setRowCount(0);
+							getListFile();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+					}
             	}
             }
         });
@@ -247,14 +251,13 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         textFieldPathLocal.setEditable(false);
         textFieldPathLocal.setColumns(10);
         
-        textFieldRemote = new JTextField("F:\\");
+        textFieldRemote = new JTextField("/");
         textFieldRemote.setEditable(false);
         textFieldRemote.setColumns(10);
         
         JButton button = new JButton("Choose");
         button.setActionCommand("btnBrowse");
         
-
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         layout.setHorizontalGroup(
         	layout.createParallelGroup(Alignment.LEADING)
@@ -330,10 +333,7 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         );
         
         
-        
-//addTree(fileRoot);
-        
-        //tree 1
+
         fileRoot_1 = new File(defaultLocalPath);
         root_1 = new DefaultMutableTreeNode(new FileNode(fileRoot_1));
         treeModel_1 = new DefaultTreeModel(root_1);
@@ -343,23 +343,6 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
         tree_1 = new JTree(treeModel_1);
         tree_1.setBounds(10, 252, 343, 436);
         tree_1.setShowsRootHandles(true);
-//        btnShow.addActionListener(new ActionListener() {
-//			
-//			@Override
-//			public void actionPerformed(ActionEvent e) {
-//				System.out.println("click show");
-//				defaultLocalPath=textFieldPath.getText().trim();
-//				System.out.println("default "+defaultLocalPath);
-//				root_1 = new DefaultMutableTreeNode(new FileNode(fileRoot_1));
-//		        treeModel_1 = new DefaultTreeModel(root_1);
-//		        tree_1.setModel(treeModel_1);
-//		        jScrollPaneLocal.setViewportView(tree_1);
-//		        CreateChildNodes ccn_1 = 
-//		                new CreateChildNodes(fileRoot_1, root_1);
-//		        new Thread(ccn_1).start();
-//				
-//			}
-//		});
         tree_1.addTreeExpansionListener(new TreeExpansionListener() {
 			
 			@Override
@@ -474,10 +457,36 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 					status+="\n Status: Starting upload of "+localFileFullName;
 					setPaneStatus(status);
 					uploadFile(localFileFullName, fileName, hostDir);
+//					jTableRemote.repaint();
+//					modelRemote.fireTableDataChanged();
+					modelRemote.setRowCount(0);
+					getListFile();
+//					modelRemote.fireTableDataChanged();
 				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
 				
+			}
+		});
+        btnDelete.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String deletePath= SLASH+jTableRemote.getValueAt(jTableRemote.getSelectedRow(), 0).toString();
+				System.out.println("deletePath: "+deletePath);
+				
+				try {
+					ftpClient.deleteFile(deletePath);
+					status+="\n Status: delete File "+deletePath;
+					setPaneStatus(status);
+					jTableRemote.repaint();
+//					modelRemote.fireTableDataChanged();
+//					modelRemote.setRowCount(0);
+//					getListFile();
+					modelRemote.fireTableDataChanged();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 			}
 		});
     }// </editor-fold>
@@ -598,7 +607,13 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
     }                                              
 
     private void jButtonConnectMouseClicked(java.awt.event.MouseEvent evt) {                                            
-        connectFTPServer();
+        try {
+        	connectFTPServer();
+		} catch (Exception e) {
+			System.out.println("Nhập đủ thông tin yêu cầu");
+			status+="\n Status: Please fill all the fields";
+			setPaneStatus(status);
+		}
     }                                           
 
     /**
@@ -606,15 +621,15 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
      */
 
     private void connectFTPServer() {
-//        FTP_SERVER_ADDRESS=jTextFieldHost.getText();
-//        FTP_USERNAME=jTextFieldUsername.getText();
-//        FTP_PASSWORD=jPasswordField.getText();
-//        FTP_PORT_NUMBER=Integer.parseInt(jTextFieldPort.getText());
+        FTP_SERVER_ADDRESS=jTextFieldHost.getText();
+        FTP_USERNAME=jTextFieldUsername.getText();
+        FTP_PASSWORD=jPasswordField.getText();
+        FTP_PORT_NUMBER=Integer.parseInt(jTextFieldPort.getText());
     	
-    	FTP_SERVER_ADDRESS="localhost";
-        FTP_USERNAME="vuong";
-        FTP_PASSWORD="123456";
-        FTP_PORT_NUMBER=21;
+//    	FTP_SERVER_ADDRESS="localhost";
+//        FTP_USERNAME="vuong";
+//        FTP_PASSWORD="123456";
+//        FTP_PORT_NUMBER=21;
     	
         ftpClient=new FTPClient();
         try {
