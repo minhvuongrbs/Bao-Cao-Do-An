@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -479,11 +480,17 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 					ftpClient.deleteFile(deletePath);
 					status+="\n Status: delete File "+deletePath;
 					setPaneStatus(status);
-					jTableRemote.repaint();
+//					jTableRemote.repaint();
 //					modelRemote.fireTableDataChanged();
-//					modelRemote.setRowCount(0);
-//					getListFile();
-					modelRemote.fireTableDataChanged();
+					modelRemote.setRowCount(0);
+					getListFile();
+//					int b=modelRemote.getRowCount();
+//					for(int i = b- 1; i >= 0; i--) {
+//						if(modelRemote.getValueAt(i, 0)==null) {
+//							modelRemote.removeRow(i);
+//						}
+//					}
+					
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
@@ -632,11 +639,14 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
 //        FTP_PORT_NUMBER=21;
     	
         ftpClient=new FTPClient();
+//        ftpClient.setControlEncoding("UTF-8");
+//        ftpClient.setCharset(StandardCharsets.UTF_8);
         try {
             System.out.println("connecting to ftp server.....");
             //connect to ftp server
             ftpClient.setDefaultTimeout(FTP_TIMEOUT);
             ftpClient.connect(FTP_SERVER_ADDRESS, FTP_PORT_NUMBER);
+            ftpClient.setControlEncoding("UTF-8");
             //run the passive mode command
             ftpClient.enterLocalPassiveMode();
             //check reply code
@@ -713,6 +723,8 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
     // End of variables declaration                   
 
     private void getListFile() throws IOException {
+    	System.out.println("load getlistfile");
+    	modelRemote.setColumnCount(0);
         String column[]={"FileName","FileSize","FileType","LastModified"};
         modelRemote.setColumnIdentifiers(column);
         jScrollPaneRemote.setViewportView(jTableRemote);
@@ -744,7 +756,13 @@ public class FPTClient extends javax.swing.JFrame implements ActionListener{
             	rows[2]="Folder";
             }
             rows[3]=ftpFile.getRawListing().toString();
-            modelRemote.addRow(rows); 
+            modelRemote.addRow(rows);
+            int b=modelRemote.getRowCount();
+			for(int i = b- 1; i >= 0; i--) {
+				if(modelRemote.getValueAt(i, 0)==null) {
+					modelRemote.removeRow(i);
+				}
+			}
         }
     }
     private void downloadFTPFile(String ftpFilePath, String downloadFilePath) {
